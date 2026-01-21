@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Neon Arena</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#0b1020" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">NEON ARENA</div>
+    <div class="hint">
+      <span><kbd>WASD</kbd> mover</span>
+      <span><kbd>Mouse</kbd> apontar</span>
+      <span><kbd>Click</kbd> disparar</span>
+      <span><kbd>Shift</kbd> dash</span>
+      <span><kbd>E</kbd> slow-mo</span>
+      <span><kbd>R</kbd> recomeçar</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div id="game"></div>
+      <div class="footer">
+        <span>Feito em Phaser 3 · Site local com Live Server</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Phaser 3 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
