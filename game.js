@@ -11,27 +11,6 @@ const HEIGHT = 720;
 
 const STORAGE_KEY = "neon_arena_highscore_v1";
 
-const config = {
-  type: Phaser.AUTO,
-  parent: "game",
-  backgroundColor: "#070a14",
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: WIDTH,
-    height: HEIGHT
-  },
-  physics: {
-    default: "arcade",
-    arcade: {
-      gravity: { y: 0 },
-      debug: false
-    }
-  },
-  scene: [MainScene]
-};
-
-new Phaser.Game(config);
 
 function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
@@ -520,3 +499,26 @@ class MainScene extends Phaser.Scene {
     this.cameras.main.shake(220, 0.02);
   }
 }
+
+// Phaser game config
+const config = {
+    type: Phaser.AUTO,
+    parent: "game",
+    backgroundColor: "#070a14",
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: WIDTH,
+      height: HEIGHT
+    },
+    physics: {
+      default: "arcade",
+      arcade: {
+        gravity: { y: 0 },
+        debug: false
+      }
+    },
+    scene: [MainScene]
+  };
+
+new Phaser.Game(config);
