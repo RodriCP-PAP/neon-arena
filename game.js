@@ -1,9 +1,5 @@
 /* Neon Arena — Phaser 3
-   - Dash com i-frames + cooldown
-   - Slow-motion com cooldown
-   - Steering dos inimigos (persegue + separação)
-   - Partículas + explosões + camera shake
-   - HUD + highscore em localStorage
+   Fix: MainScene definido ANTES do config/new Phaser.Game
 */
 
 const WIDTH = 1280;
@@ -11,8 +7,7 @@ const HEIGHT = 720;
 
 const STORAGE_KEY = "neon_arena_highscore_v1";
 
-
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 class MainScene extends Phaser.Scene {
   constructor(){ super("MainScene"); }
@@ -35,10 +30,10 @@ class MainScene extends Phaser.Scene {
 
     this.input.mouse.disableContextMenu();
 
-    // Texturas (geradas com Graphics)
+    // Texturas
     this.makeTextures();
 
-    // Fundo (grade neon)
+    // Fundo
     this.bg = this.add.tileSprite(0, 0, WIDTH, HEIGHT, "grid").setOrigin(0);
 
     // Partículas
@@ -65,7 +60,7 @@ class MainScene extends Phaser.Scene {
     this.playerHP = 3;
     this.invuln = 0;
 
-    // Armas
+    // Balas
     this.bullets = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
       maxSize: 120,
@@ -90,7 +85,7 @@ class MainScene extends Phaser.Scene {
     this.enemies = this.physics.add.group();
     this.spawnTimer = 0;
 
-    // Explosões (emitters “one-shot”)
+    // Explosões
     this.boom = (x, y, power = 1) => {
       this.particles.createEmitter({
         x, y,
@@ -115,7 +110,6 @@ class MainScene extends Phaser.Scene {
         this.score += 35 + Math.floor(enemy.speed * 0.05);
         this.boom(enemy.x, enemy.y, 1.2);
         enemy.destroy();
-
         this.cameras.main.shake(60, 0.006);
       }
     });
@@ -152,19 +146,18 @@ class MainScene extends Phaser.Scene {
       color: "#9fb0d0"
     }).setDepth(5);
 
-    // Mira (crosshair)
+    // Mira
     this.cross = this.add.image(0, 0, "cross").setDepth(6).setAlpha(0.9);
 
-    // Efeitos de luz simples (glow fake)
+    // Glow
     this.glow = this.add.image(this.player.x, this.player.y, "glow").setDepth(1).setAlpha(0.6);
 
-    // Primeira onda
+    // Primeiros inimigos
     for (let i = 0; i < 5; i++) this.spawnEnemy();
 
     // Restart
     this.input.keyboard.on("keydown-R", () => this.scene.restart());
 
-    // Dica “tap to focus” no mobile
     this.input.on("pointerdown", () => this.game.canvas.focus());
   }
 
@@ -204,7 +197,7 @@ class MainScene extends Phaser.Scene {
     g.fillCircle(6, 6, 4);
     g.generateTexture("bullet", 12, 12);
 
-    // Spark particle
+    // Spark
     g.clear();
     g.fillStyle(0x9ad7ff, 1);
     g.fillCircle(4, 4, 3);
@@ -234,18 +227,14 @@ class MainScene extends Phaser.Scene {
   }
 
   update(time, delta){
-    // fundo animado
     this.bg.tilePositionX += 0.25;
     this.bg.tilePositionY += 0.18;
 
-    // crosshair segue o mouse
     const p = this.input.activePointer;
     this.cross.setPosition(p.worldX, p.worldY);
 
-    // timers
     this.timeAlive += delta / 1000;
 
-    // invulnerabilidade (pisca)
     if (this.invuln > 0) {
       this.invuln -= delta;
       this.player.setAlpha((Math.floor(time / 70) % 2) ? 0.35 : 1);
@@ -253,40 +242,29 @@ class MainScene extends Phaser.Scene {
       this.player.setAlpha(1);
     }
 
-    // slow motion: aplica timeScale na physics e na cena
     const slowNow = time < this.slowActiveUntil;
     const targetScale = slowNow ? 0.35 : 1.0;
-    // suaviza
     this.time.timeScale = Phaser.Math.Linear(this.time.timeScale, targetScale, 0.12);
     this.physics.world.timeScale = this.time.timeScale;
 
-    // movimento do player
     const move = new Phaser.Math.Vector2(0, 0);
     if (this.keys.w.isDown) move.y -= 1;
     if (this.keys.s.isDown) move.y += 1;
     if (this.keys.a.isDown) move.x -= 1;
     if (this.keys.d.isDown) move.x += 1;
-
     if (move.lengthSq() > 0) move.normalize();
 
     const baseAccel = slowNow ? 900 : 1100;
     this.player.body.acceleration.x = move.x * baseAccel;
     this.player.body.acceleration.y = move.y * baseAccel;
 
-    // apontar (rotação) para o cursor
     const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, p.worldX, p.worldY);
     this.player.setRotation(ang);
 
-    // disparo
     if (p.isDown) this.tryShoot(time, ang);
-
-    // dash
     if (Phaser.Input.Keyboard.JustDown(this.keys.shift)) this.tryDash(time, ang);
-
-    // slow-mo
     if (Phaser.Input.Keyboard.JustDown(this.keys.e)) this.trySlow(time);
 
-    // trail ligado quando acelera ou dash recente
     const speed = this.player.body.velocity.length();
     if (speed > 120) {
       this.trail.start();
@@ -295,26 +273,21 @@ class MainScene extends Phaser.Scene {
       this.trail.stop();
     }
 
-    // glow segue player
     this.glow.setPosition(this.player.x, this.player.y);
 
-    // steering inimigos
     this.updateEnemies(delta);
 
-    // spawn progressivo (dificuldade)
     this.spawnTimer += delta;
-    const spawnEvery = clamp(980 - this.timeAlive * 18, 360, 980); // vai apertando
+    const spawnEvery = clamp(980 - this.timeAlive * 18, 360, 980);
     if (this.spawnTimer > spawnEvery) {
       this.spawnTimer = 0;
       this.spawnEnemy();
       if (Math.random() < 0.15) this.spawnEnemy();
     }
 
-    // “onda” só para mostrar progressão (aumenta stats)
     const newWave = 1 + Math.floor(this.timeAlive / 18);
     if (newWave !== this.wave) this.wave = newWave;
 
-    // limpar balas fora
     this.bullets.children.iterate((b) => {
       if (!b || !b.active) return;
       if (b.x < -50 || b.x > WIDTH + 50 || b.y < -50 || b.y > HEIGHT + 50) {
@@ -323,7 +296,6 @@ class MainScene extends Phaser.Scene {
       }
     });
 
-    // HUD
     const dashReady = (time - this.lastDash) >= this.dashCdMs;
     const slowReady = (time - this.lastSlow) >= this.slowCdMs;
 
@@ -348,7 +320,6 @@ class MainScene extends Phaser.Scene {
 
     b.setActive(true).setVisible(true);
     b.body.enable = true;
-
     b.setRotation(ang);
     b.setDepth(3);
 
@@ -356,11 +327,9 @@ class MainScene extends Phaser.Scene {
     b.body.velocity.x = Math.cos(ang) * speed;
     b.body.velocity.y = Math.sin(ang) * speed;
 
-    // pequeno recuo
     this.player.body.velocity.x -= Math.cos(ang) * 18;
     this.player.body.velocity.y -= Math.sin(ang) * 18;
 
-    // micro partículas
     this.particles.createEmitter({
       x: this.player.x + Math.cos(ang) * 18,
       y: this.player.y + Math.sin(ang) * 18,
@@ -382,7 +351,7 @@ class MainScene extends Phaser.Scene {
     this.player.body.velocity.x = Math.cos(ang) * dashSpeed;
     this.player.body.velocity.y = Math.sin(ang) * dashSpeed;
 
-    this.invuln = this.dashIFramesMs; // i-frames no dash
+    this.invuln = this.dashIFramesMs;
     this.boom(this.player.x, this.player.y, 1.05);
     this.cameras.main.shake(90, 0.01);
   }
@@ -391,13 +360,10 @@ class MainScene extends Phaser.Scene {
     if (time - this.lastSlow < this.slowCdMs) return;
     this.lastSlow = time;
     this.slowActiveUntil = time + this.slowDurationMs;
-
-    // feedback visual
     this.cameras.main.flash(80, 105, 240, 255, true);
   }
 
   spawnEnemy(){
-    // spawn à volta das bordas
     const side = Phaser.Math.Between(0, 3);
     let x, y;
     const pad = 40;
@@ -426,13 +392,11 @@ class MainScene extends Phaser.Scene {
       const e = enemies[i];
       if (!e.active) continue;
 
-      // steering to player
       let vx = px - e.x;
       let vy = py - e.y;
       let d = Math.max(1, Math.hypot(vx, vy));
       vx /= d; vy /= d;
 
-      // separação: evita “blob” em cima do player
       let sx = 0, sy = 0;
       for (let j = 0; j < enemies.length; j++){
         if (i === j) continue;
@@ -448,7 +412,6 @@ class MainScene extends Phaser.Scene {
         }
       }
 
-      // mistura dos vetores
       const steerX = vx * 1.0 + sx * 1.35;
       const steerY = vy * 1.0 + sy * 1.35;
 
@@ -456,33 +419,29 @@ class MainScene extends Phaser.Scene {
       const dirX = steerX / len;
       const dirY = steerY / len;
 
-      // aceleração suave
       const accel = e.speed * 6.2 * (delta / 1000);
       e.body.velocity.x = e.body.velocity.x * e.drag + dirX * accel * 60;
       e.body.velocity.y = e.body.velocity.y * e.drag + dirY * accel * 60;
 
-      // “olhar” na direção do movimento
       const ang = Phaser.Math.Angle.Between(0, 0, e.body.velocity.x, e.body.velocity.y);
       e.setRotation(ang);
     }
   }
 
   gameOver(){
-    // guarda highscore
     if (this.score > this.high) {
       this.high = this.score;
       localStorage.setItem(STORAGE_KEY, String(this.high));
     }
 
-    // overlay
-    const overlay = this.add.rectangle(WIDTH/2, HEIGHT/2, WIDTH, HEIGHT, 0x000000, 0.55).setDepth(20);
-    const title = this.add.text(WIDTH/2, HEIGHT/2 - 50, "GAME OVER", {
+    this.add.rectangle(WIDTH/2, HEIGHT/2, WIDTH, HEIGHT, 0x000000, 0.55).setDepth(20);
+    this.add.text(WIDTH/2, HEIGHT/2 - 50, "GAME OVER", {
       fontFamily: "ui-monospace, Menlo, Consolas, monospace",
       fontSize: "56px",
       color: "#e8eefc"
     }).setOrigin(0.5).setDepth(21);
 
-    const info = this.add.text(WIDTH/2, HEIGHT/2 + 20,
+    this.add.text(WIDTH/2, HEIGHT/2 + 20,
       `Score: ${this.score}  ·  High: ${this.high}\nPressiona R para recomeçar`,
       {
         fontFamily: "ui-monospace, Menlo, Consolas, monospace",
@@ -500,25 +459,25 @@ class MainScene extends Phaser.Scene {
   }
 }
 
-// Phaser game config
+/* ✅ config e new Phaser.Game só depois de MainScene existir */
 const config = {
-    type: Phaser.AUTO,
-    parent: "game",
-    backgroundColor: "#070a14",
-    scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: WIDTH,
-      height: HEIGHT
-    },
-    physics: {
-      default: "arcade",
-      arcade: {
-        gravity: { y: 0 },
-        debug: false
-      }
-    },
-    scene: [MainScene]
-  };
+  type: Phaser.AUTO,
+  parent: "game",
+  backgroundColor: "#070a14",
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: WIDTH,
+    height: HEIGHT
+  },
+  physics: {
+    default: "arcade",
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scene: [MainScene]
+};
 
 new Phaser.Game(config);
